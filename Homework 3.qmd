@@ -1,0 +1,133 @@
+---
+title: "Homework 3"
+format: html
+editor: visual
+---
+
+First load the work environment of homework 2 from online
+
+```{r}
+setwd ("C:\\NCSU\\Statistics\\ST558\\2024")
+load ("hw2_list.rda")
+
+mybplist <- bp_list
+```
+
+# Task 1: Control Flow Practice
+
+Now create a new column called "status" in each data frame in the list. Note character () could be used as a function to make a character vector, just like the argument data.frame () does.
+
+```{r}
+mybplist[[1]]$status <- character (20)
+mybplist[[2]]$status <- character (10)
+```
+
+Now check the new list to see if the status columns were added to each of the dataframe。
+
+```{r}
+str (mybplist)
+```
+
+Ok. Then we are ready to go.
+
+Next create a for loop and use if/then/else logic to create the **status** column values. We could always use *for (i in 1:n)* where n is the actual number of rows in the dataframe. But to be more universally applicable, try *for (i in 1: dim(mybplist\$treatment)\[1\])*
+
+```{r}
+for (i in 1 : dim (mybplist$treatment)[1])
+  if (mybplist$treatment$post_bp[i] <= 120) {
+    mybplist$treatment$status [i]= "optimal"
+  } else if (mybplist$treatment$post_bp[i] <= 130) {
+    mybplist$treatment$status [i]= "borderline"
+  } else if (mybplist$treatment$post_bp[i] > 130){
+    mybplist$treatment$status [i]= "high"
+  }
+```
+
+Then check if the status has been added correctly.
+
+```{r}
+str (mybplist$treatment)
+```
+
+It worked! Now apply this function to the placebo data frame as well.
+
+```{r}
+for (i in 1 : dim (mybplist$placebo)[1])
+  if (mybplist$placebo$post_bp[i] <= 120) {
+    mybplist$placebo$status [i]= "optimal"
+  } else if (mybplist$placebo$post_bp[i] <= 130) {
+    mybplist$placebo$status [i]= "borderline"
+  } else if (mybplist$placebo$post_bp[i] > 130){
+    mybplist$placebo$status [i]= "high"
+  }
+str (mybplist$placebo)
+```
+
+Then check the list that comprises those two data frame as elements to make sure the data manipulations were made within the list.
+
+```{r}
+str (mybplist)
+```
+
+# Task 2: Function Writing
+
+Writing a function is one of the most exciting part in R. It enables custom-input, which is extremely useful in making an R shiny app. We wanted to write a function that
+
+-   Takes in a list with two data frames in it (just as the list we played with in the Task 1) as am argument, give no default value in it.
+
+-   Takes in an R function with the default value set to "mean". This is essentially enabling user to input what stats they wanted to summarize.
+
+-   This function should find the stats of interest for the pre, post, and diff columns of both data frames.
+
+-   The six values should then be retured as a named list with meaningful names.
+
+    It looks like the last requirement is more challanging. Try make a function that enables the requirement 1-3 first.
+
+```{r}
+summarize <- function (list, summarywhich = "mean") {
+  return (c (get(summarywhich)(list$treatment$pre_bp),
+             get(summarywhich)(list$treatment$post_bp),
+             get(summarywhich)(list$treatment$diff_bp),
+             get(summarywhich)(list$placebo$pre_bp),
+             get(summarywhich)(list$placebo$post_bp),
+             get(summarywhich)(list$placebo$diff_bp)))
+}
+```
+
+Let's give it try using the mybplist.
+
+```{r}
+summarize (mybplist)
+summarize (mybplist, summarywhich = "sd")
+```
+
+The problem is the elements don't have a name. In order to do that, we could build a second function to get at custom input. This takes a while for me to think. Initially I thought two functions are required, and then later I found not everything need to be returned. Here we go.
+
+```{r}
+summarize <- function (list, summarywhich = "mean") {
+  stats <- c (get(summarywhich)(list$treatment$pre_bp),
+             get(summarywhich)(list$treatment$post_bp),
+             get(summarywhich)(list$treatment$diff_bp),
+             get(summarywhich)(list$placebo$pre_bp),
+             get(summarywhich)(list$placebo$post_bp),
+             get(summarywhich)(list$placebo$diff_bp))
+  names (stats) <- c (paste (summarywhich, "prebp", "treatment"),
+                       paste (summarywhich, "postbp", "treatment"),
+                       paste (summarywhich, "diffbp", "treatment"),
+                       paste (summarywhich, "prebp", "placebo"),
+                       paste (summarywhich, "postbp", "placebo"),
+                       paste (summarywhich, "diffbp", "placebo"))
+  return (as.list (stats))
+  
+}
+```
+
+Apply this function to generate mean (without specifying), var, sd, min and max
+
+```{r}
+summarize (mybplist)
+summarize (mybplist, "var")
+summarize (mybplist, "sd")
+summarize (mybplist, "min")
+summarize (mybplist, "max")
+```
